@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Assistant AI</title>
+    <link rel="icon" type="image/png" href="Images/Logo 1.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for chat layout and responsiveness */
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Original: min-height: 100vh */
+            margin: 0;
+            background-color: #f8fafc; /* Tailwind: bg-slate-50 */
+        }
+        header {
+            text-align: center;
+            padding: 1.25rem; /* Tailwind: p-5 */
+            background-color: #ffffff; /* Tailwind: bg-white */
+            border-bottom: 1px solid #e2e8f0; /* Tailwind: border-b border-slate-200 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Tailwind: shadow-sm */
+            display: flex; /* Use flexbox for alignment */
+            align-items: center; /* Vertically center items */
+            justify-content: center; /* Horizontally center items */
+            gap: 0.75rem; /* Space between logo and title */
+        }
+        main {
+            flex-grow: 1;
+            padding: 1.25rem; /* Tailwind: p-5 */
+            overflow-y: auto; /* Enable scrolling for chat history */
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem; /* Tailwind: gap-3 */
+            max-width: 800px; /* Limit chat width for better readability */
+            margin: 0 auto; /* Center the chat area */
+        }
+        .message-container {
+            display: flex;
+        }
+        .message-container.user {
+            justify-content: flex-end; /* Align user messages to the right */
+        }
+        .message-container.ai {
+            justify-content: flex-start; /* Align AI messages to the left */
+        }
+        .message {
+            max-width: 75%; /* Tailwind: max-w-3/4 */
+            padding: 0.75rem 1rem; /* Tailwind: py-3 px-4 */
+            border-radius: 1.25rem; /* Tailwind: rounded-2xl */
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* Tailwind: shadow-sm */
+            /* Ensure message content uses flex for GIF and text alignment */
+            display: flex;
+            align-items: flex-start; /* Align items to the top (text might have multiple lines) */
+            gap: 0.5rem; /* Space between GIF and text */
+        }
+        .message.user {
+            background-color: #dbeafe; /* Tailwind: bg-blue-100 */
+            color: #1e293b; /* Tailwind: text-slate-800 */
+            border-bottom-right-radius: 0.25rem; /* Tailwind: rounded-br-sm */
+        }
+        .message.ai {
+            background-color: #ffffff; /* Tailwind: bg-white */
+            color: #1e293b; /* Tailwind: text-slate-800 */
+            border-bottom-left-radius: 0.25rem; /* Tailwind: rounded-bl-sm */
+        }
+        footer {
+            padding: 1rem; /* Tailwind: p-4 */
+            background-color: #ffffff; /* Tailwind: bg-white */
+            border-top: 1px solid #e2e8f0; /* Tailwind: border-t border-slate-200 */
+            display: flex;
+            align-items: center;
+            gap: 0.75rem; /* Tailwind: gap-3 */
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05); /* Tailwind: shadow-sm */
+        }
+        #questionInput {
+            flex-grow: 1;
+            padding: 0.75rem 1rem; /* Tailwind: py-3 px-4 */
+            border: 1px solid #cbd5e1; /* Tailwind: border-slate-300 */
+            border-radius: 0.5rem; /* Tailwind: rounded-lg */
+            font-size: 1rem; /* Tailwind: text-base */
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        #questionInput:focus {
+            border-color: #3b82f6; /* Tailwind: border-blue-500 */
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25); /* Tailwind: ring-2 ring-blue-500/25 */
+        }
+        #sendButton {
+            padding: 0.75rem 1.5rem; /* Tailwind: py-3 px-6 */
+            background-color: #3b82f6; /* Tailwind: bg-blue-500 */
+            color: white;
+            border: none;
+            border-radius: 0.5rem; /* Tailwind: rounded-lg */
+            cursor: pointer;
+            font-size: 1rem; /* Tailwind: text-base */
+            font-weight: 500; /* Tailwind: font-medium */
+            transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        #sendButton:hover {
+            background-color: #2563eb; /* Tailwind: bg-blue-600 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Tailwind: shadow-md */
+        }
+        #sendButton:disabled {
+            background-color: #93c5fd; /* Tailwind: bg-blue-300 */
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Styles for the loading GIF */
+        .ai-loading-gif {
+            width: 24px; /* Small size for the GIF */
+            height: 24px;
+            flex-shrink: 0; /* Prevent it from shrinking */
+            margin-right: 0.25rem; /* Small margin to the right of the GIF */
+        }
+
+        /* Styles for the logo in the header */
+        .header-logo {
+            height: 40px; /* Adjust size as needed */
+            width: auto;
+            margin-right: 0.5rem; /* Space between logo and title */
+        }
+
+        /* Styles for formatted text within messages */
+        .message ul {
+            list-style-type: disc;
+            margin-left: 1.25rem; /* Tailwind: ml-5 */
+            padding-left: 0;
+        }
+        .message ol {
+            list-style-type: decimal;
+            margin-left: 1.25rem; /* Tailwind: ml-5 */
+            padding-left: 0;
+        }
+        .message pre {
+            background-color: #e2e8f0; /* Tailwind: bg-slate-200 */
+            padding: 0.75rem; /* Tailwind: p-3 */
+            border-radius: 0.375rem; /* Tailwind: rounded-md */
+            overflow-x: auto; /* Enable horizontal scrolling for code blocks */
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            font-size: 0.875rem; /* Tailwind: text-sm */
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .message code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            background-color: #e2e8f0; /* Tailwind: bg-slate-200 */
+            padding: 0.125rem 0.375rem; /* Tailwind: px-1.5 py-0.5 */
+            border-radius: 0.25rem; /* Tailwind: rounded */
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) { /* Tailwind: sm breakpoint */
+            main {
+                padding: 0.75rem; /* Tailwind: p-3 */
+                max-width: 100%;
+            }
+            .message {
+                max-width: 90%;
+            }
+            footer {
+                flex-direction: column;
+                padding: 0.75rem;
+                gap: 0.5rem;
+            }
+            #questionInput {
+                width: 100%;
+            }
+            #sendButton {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="Images/Logo.png" alt="ECC Business Assistant AI Logo" class="header-logo">
+        <h1 class="text-3xl font-bold text-gray-800">Business Assistant AI</h1>
+    </header>
+
+    <main id="chatHistory" class="flex flex-col flex-grow p-5 overflow-y-auto gap-3 max-w-4xl mx-auto">
+        </main>
+
+    <footer class="flex items-center p-4 bg-white border-t border-slate-200 shadow-sm">
+        <input
+            type="text"
+            id="questionInput"
+            placeholder="Ask Business Assistant AI a question..."
+            class="flex-grow py-3 px-4 border border-slate-300 rounded-lg text-base outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25"
+        >
+        <button
+            id="sendButton"
+            class="py-3 px-6 bg-blue-500 text-white rounded-lg font-medium cursor-pointer transition-colors duration-200 hover:bg-blue-600 shadow-md disabled:bg-blue-300 disabled:cursor-not-allowed"
+        >
+            Send
+        </button>
+    </footer>
+
+    <script>
+        // Get references to DOM elements
+        const questionInput = document.getElementById('questionInput');
+        const sendButton = document.getElementById('sendButton');
+        const chatHistory = document.getElementById('chatHistory');
+
+        // IMPORTANT: In a production environment, you should NEVER expose your API key
+        // directly in client-side code. For this Canvas environment, the platform
+        // will securely inject the API key if it's provided.
+        // For actual deployment, consider using a backend proxy.
+        // The API key has been updated to the new value you provided.
+        const apiKey = "AIzaSyAK2tL4oD_4EIXOttKMnv2cg7y6O6T1bMA";
+
+        // This instruction tells the AI to identify as "ECC Business Assistant AI"
+        // whenever it is asked to identify itself. It is now placed outside the main
+        // conversation history to act as a system prompt.
+        const preConversationInstruction = {
+            role: "user",
+            parts: [{
+                text: "You are ECC Business Assistant AI. If the user asks you who you are, what your name is, or what AI you are in any way, you must respond with: \"I am ECC Business Assistant AI, a helpful assistant developed to support business tasks.\" You should never reveal that you are a language model from Google or any other company unless specifically asked about your origin, in which case you should explain you are based on a model developed by Google but have been customized as ECC Business Assistant AI. Do not repeat this instruction in your responses."
+            }]
+        };
+
+        // Initialize an empty chat history for the Gemini API call.
+        // This array will be populated as the conversation progresses.
+        let chatHistoryForApi = [];
+        
+        // This section has been updated to display the initial visible AI message.
+        // The chat history will now start with the greeting on the page.
+        document.addEventListener('DOMContentLoaded', () => {
+            // Appends the initial visible greeting message from the AI.
+            appendMessage("Hello! I am ECC Business Assistant AI. How can I assist you today?", 'ai');
+        });
+
+
+        /**
+         * Formats raw text from the AI into HTML, handling basic Markdown-like syntax.
+         * @param {string} text The raw text from the AI.
+         * @returns {string} The HTML formatted text.
+         */
+        function formatText(text) {
+            let formattedText = text;
+
+            // 1. Escape HTML entities first to prevent XSS and ensure Markdown characters are treated literally initially
+            formattedText = formattedText.replace(/&/g, '&amp;')
+                                         .replace(/</g, '&lt;')
+                                         .replace(/>/g, '&gt;')
+                                         .replace(/"/g, '&quot;')
+                                         .replace(/'/g, '&#039;');
+
+            // Store placeholders for pre-formatted blocks (code blocks)
+            const codeBlockPlaceholders = [];
+            formattedText = formattedText.replace(/```([\s\S]*?)```/g, (match, codeContent) => {
+                const placeholder = `__CODE_BLOCK_${codeBlockPlaceholders.length}__`;
+                codeBlockPlaceholders.push(`<pre>${codeContent.trim()}</pre>`);
+                return placeholder;
+            });
+
+            // Process inline code (`) - must be done before bold/italic to avoid issues like `**code**`
+            formattedText = formattedText.replace(/`(.*?)`/g, '<code>$1</code>');
+
+            // Process bold text (**text** or __text__)
+            formattedText = formattedText.replace(/\*\*(.*?)\*\*|__(.*?)__/g, '<strong>$1$2</strong>');
+
+            // Process italic text (*text* or _text_)
+            formattedText = formattedText.replace(/\*(.*?)\*|_(.*?)_/g, '<em>$1$2</em>');
+
+            // Process lists (unordered and ordered)
+            // This regex looks for lines starting with * or - for unordered, or digits. for ordered
+            // and captures consecutive lines that look like list items.
+            // It's important to use `^` and `$` with `m` flag for line-by-line matching.
+            formattedText = formattedText.replace(/(?:^|\n)([\s]*[\*\-]\s.*(?:\n[\s]*[\*\-]\s.*)*)/gm, (match, listContent) => {
+                const listItems = listContent.trim().split('\n').map(line => {
+                    return `<li>${line.replace(/^[\s]*[\*\-]\s/, '').trim()}</li>`;
+                }).join('');
+                return `<ul>${listItems}</ul>`;
+            });
+
+            formattedText = formattedText.replace(/(?:^|\n)([\s]*\d+\.\s.*(?:\n[\s]*\d+\.\s.*)*)/gm, (match, listContent) => {
+                const listItems = listContent.trim().split('\n').map(line => {
+                    return `<li>${line.replace(/^[\s]*\d+\.\s/, '').trim()}</li>`;
+                }).join('');
+                return `<ol>${listItems}</ol>`;
+            });
+
+            // Now handle paragraphs and line breaks for the *remaining* text.
+            // Split by lines, and wrap non-empty lines that are not already HTML block elements in <p> tags.
+            // Single newlines within these "paragraphs" will become <br>.
+            const finalLines = formattedText.split('\n');
+            let outputHtml = [];
+            let currentParagraph = [];
+
+            for (const line of finalLines) {
+                const trimmedLine = line.trim();
+                // Check if the line starts with an HTML block tag or a placeholder for a block
+                const isBlockElementStart = trimmedLine.startsWith('<ul') || trimmedLine.startsWith('<ol') || trimmedLine.startsWith('<pre>') || trimmedLine.startsWith('__CODE_BLOCK_');
+
+                if (trimmedLine === '') {
+                    // If empty line and we have content in currentParagraph, close it
+                    if (currentParagraph.length > 0) {
+                        outputHtml.push(`<p>${currentParagraph.join('<br>')}</p>`);
+                        currentParagraph = [];
+                    }
+                } else if (isBlockElementStart) {
+                    // If it's a block element (list, pre, or code block placeholder)
+                    if (currentParagraph.length > 0) {
+                        outputHtml.push(`<p>${currentParagraph.join('<br>')}</p>`);
+                        currentParagraph = [];
+                    }
+                    outputHtml.push(trimmedLine);
+                } else {
+                    // Regular text line
+                    currentParagraph.push(trimmedLine);
+                }
+            }
+
+            // Add any remaining paragraph content
+            if (currentParagraph.length > 0) {
+                outputHtml.push(`<p>${currentParagraph.join('<br>')}</p>`);
+            }
+
+            formattedText = outputHtml.join('');
+
+            // Restore code blocks
+            codeBlockPlaceholders.forEach((codeBlock, index) => {
+                formattedText = formattedText.replace(`__CODE_BLOCK_${index}__`, codeBlock);
+            });
+
+            // Final cleanup: remove any empty <p> tags that might have been created
+            formattedText = formattedText.replace(/<p>\s*<\/p>/g, '');
+
+            return formattedText;
+        }
+
+
+        /**
+         * Appends a new message to the chat history display with a typing effect for AI messages.
+         * For AI messages, it now handles multiple parts.
+         * @param {string | Array<Object>} content - The text content (for user) or an array of parts (for AI).
+         * @param {'user' | 'ai'} sender - The sender of the message ('user' or 'ai').
+         * @returns {Promise<void>} A promise that resolves when the typing animation is complete.
+         */
+        function appendMessage(content, sender) {
+            return new Promise(async resolve => {
+                const messageContainer = document.createElement('div');
+                messageContainer.classList.add('message-container', sender, 'flex');
+
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message', sender, 'max-w-3/4', 'py-3', 'px-4', 'rounded-2xl', 'shadow-sm', 'word-wrap');
+
+                if (sender === 'user') {
+                    messageDiv.classList.add('bg-blue-100', 'text-slate-800', 'rounded-br-sm');
+                    messageDiv.textContent = content; // User input is plain text
+                    messageContainer.appendChild(messageDiv);
+                    chatHistory.appendChild(messageContainer);
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                    resolve(); // Resolve immediately for user messages
+                } else {
+                    messageDiv.classList.add('bg-white', 'text-slate-800', 'rounded-bl-sm');
+
+                    // Create GIF element and append first
+                    const loadingGif = document.createElement('img');
+                    loadingGif.src = 'Loading.gif'; // Corrected GIF path
+                    loadingGif.alt = 'Loading...'; // Alt text for accessibility
+                    loadingGif.classList.add('ai-loading-gif');
+                    messageDiv.appendChild(loadingGif);
+
+                    // Create a div for the actual typed text content
+                    const typedTextContentDiv = document.createElement('div');
+                    typedTextContentDiv.classList.add('typed-text-content'); // Add a class for potential styling if needed
+                    messageDiv.appendChild(typedTextContentDiv);
+
+                    messageContainer.appendChild(messageDiv);
+                    chatHistory.appendChild(messageContainer);
+                    chatHistory.scrollTop = chatHistory.scrollHeight; // Scroll to show the new message bubble with GIF
+
+                    // If content is an array (multiple parts from AI)
+                    if (Array.isArray(content)) {
+                        for (const part of content) {
+                            if (part.text) {
+                                // Remove GIF just before typing starts for the first part
+                                if (loadingGif.parentNode) { // Check if GIF is still in DOM
+                                    loadingGif.remove();
+                                }
+                                await typeTextContent(typedTextContentDiv, part.text);
+                            }
+                        }
+                    } else if (typeof content === 'string') {
+                        // If content is a single string (fallback or simple AI response)
+                        if (loadingGif.parentNode) { // Check if GIF is still in DOM
+                            loadingGif.remove();
+                        }
+                        await typeTextContent(typedTextContentDiv, content);
+                    }
+
+                    // Ensure GIF is removed even if there was no text content or an error
+                    if (loadingGif.parentNode) {
+                        loadingGif.remove();
+                    }
+
+                    chatHistory.scrollTop = chatHistory.scrollHeight; // Final scroll adjustment
+                    resolve(); // Resolve the promise once all parts are typed
+                }
+            });
+        }
+
+        /**
+         * Types out text content character by character into a given DOM element.
+         * Applies formatting after typing is complete.
+         * @param {HTMLElement} element The DOM element to type into.
+         * @param {string} text The text to type.
+         * @returns {Promise<void>} A promise that resolves when typing is complete.
+         */
+        function typeTextContent(element, text) {
+            return new Promise(resolve => {
+                let currentTypedText = '';
+                let index = 0;
+                const typingSpeed = 20; // milliseconds per character
+
+                function typeCharacter() {
+                    if (index < text.length) {
+                        currentTypedText += text.charAt(index);
+                        element.textContent = currentTypedText; // Update plain text during typing
+                        index++;
+                        chatHistory.scrollTop = chatHistory.scrollHeight;
+                        setTimeout(typeCharacter, typingSpeed);
+                    } else {
+                        // Typing complete for this part, apply full formatting
+                        element.innerHTML = formatText(text);
+                        chatHistory.scrollTop = chatHistory.scrollHeight;
+                        resolve();
+                    }
+                }
+                typeCharacter();
+            });
+        }
+
+
+        /**
+         * Handles sending a message to the AI.
+         */
+        async function handleSendMessage() {
+            const question = questionInput.value.trim();
+            if (!question) {
+                return;
+            }
+
+            // Display user's message
+            await appendMessage(question, 'user'); // Await user message display
+            questionInput.value = ''; // Clear input field
+
+            // Add user's message to the API chat history
+            chatHistoryForApi.push({
+                role: "user",
+                parts: [{ text: question }]
+            });
+
+            // Disable button and input immediately
+            sendButton.disabled = true;
+            questionInput.disabled = true;
+
+            try {
+                // Construct the payload with the instruction and the current chat history.
+                // The instruction is now at the beginning of the array.
+                const payload = {
+                    contents: [preConversationInstruction, ...chatHistoryForApi]
+                };
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('API Error:', errorData);
+                    await appendMessage("Error: Could not get a response from AI. Please try again.", 'ai');
+                    chatHistoryForApi.pop(); // Remove the last user message from history if API call failed
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts) {
+                    const aiContentParts = result.candidates[0].content.parts;
+
+                    // Display AI's response with typing effect for each part
+                    await appendMessage(aiContentParts, 'ai');
+
+                    // Add AI's full response (all parts) to the API chat history after typing is done
+                    chatHistoryForApi.push({
+                        role: "model",
+                        parts: aiContentParts
+                    });
+
+                } else {
+                    console.warn("Unexpected API response structure:", result);
+                    await appendMessage("I'm sorry, I couldn't generate a response.", 'ai');
+                    chatHistoryForApi.pop(); // Remove the last user message from history if API call failed
+                }
+            } catch (error) {
+                console.error('Network or parsing error:', error);
+                await appendMessage("Error: Something went wrong. Please check your network connection.", 'ai');
+                chatHistoryForApi.pop(); // Remove the last user message from history if API call failed
+            } finally {
+                // Enable button and input after typing completes
+                sendButton.disabled = false;
+                questionInput.disabled = false;
+                questionInput.focus(); // Put focus back on input
+            }
+        }
+
+        // Event listeners for sending messages
+        sendButton.addEventListener('click', handleSendMessage);
+        questionInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                handleSendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
